@@ -1,47 +1,57 @@
+#!/usr/bin/env python3
 # report.py
-#
-# Exercise 2.4
-import csv
-from pprint import pprint
+
+import fileparse
 
 
-# 购进股票
 def read_portfolio(filename):
-    portfolio = []
-    with open(filename, 'rt') as f:
-        rows = csv.reader(f)
-        header = next(rows)
-        for row in rows:
-            record = dict(zip(header, row))
-            try:
-                stock = {
-                    'name': record['name'],
-                    'shares': int(record['shares']),
-                    'price': float(record['price'])
-                }
-                portfolio.append(stock)
-            except ValueError:
-                print(f'Bad row: {row}')
-    return portfolio
+    """
+    Read a stock portfolio file into a list of dictionaries with keys
+    name, shares, and price.
+    """
+    # portfolio = []
+    # with open(filename, 'rt') as f:
+    #     rows = csv.reader(f)
+    #     header = next(rows)
+    #     for row in rows:
+    #         record = dict(zip(header, row))
+    #         try:
+    #             stock = {
+    #                 'name': record['name'],
+    #                 'shares': int(record['shares']),
+    #                 'price': float(record['price'])
+    #             }
+    #             portfolio.append(stock)
+    #         except ValueError:
+    #             print(f'Bad row: {row}')
+    # return portfolio
+    with open(filename) as lines:
+        return fileparse.parse_csv(lines, select=['name', 'shares', 'price'], types=[str, int, float])
 
 
-# 卖出股票
 def read_prices(filename):
-    prices = {}
-    with open(filename, 'rt') as f:
-        rows = csv.reader(f)
-        # header = next(rows)
-        for row in rows:
-            try:
-                prices[row[0]] = float(row[1])
-            except IndexError:
-                pass
+    """
+    Read prices from a CSV file of name, price data
+    """
+    # prices = {}
+    # with open(filename, 'rt') as f:
+    #     rows = csv.reader(f)
+    #     # header = next(rows)
+    #     for row in rows:
+    #         try:
+    #             prices[row[0]] = float(row[1])
+    #         except IndexError:
+    #             pass
+    #
+    # return prices
+    with open(filename) as lines:
+        return dict(fileparse.parse_csv(lines, types=[str, float], has_headers=False))
 
-    return prices
 
-
-# 计算收益
 def calculate(portfolio_file, prices_file):
+    """
+    Calculate some data
+    """
     portfolio = read_portfolio(portfolio_file)
     prices = read_prices(prices_file)
     gain = 0.0
@@ -52,7 +62,6 @@ def calculate(portfolio_file, prices_file):
     return gain - loss
 
 
-# 输出最终数据
 def make_report(portfolio, prices):
     report = []
     for dic in portfolio:
@@ -61,16 +70,30 @@ def make_report(portfolio, prices):
     return report
 
 
-portfolio = read_portfolio('Data/portfolio.csv')
-pprint(portfolio)
-prices = read_prices('Data/prices.csv')
-pprint(prices)
-total = calculate("Data/portfolio.csv", "Data/prices.csv")
-print(total)
-header_tuple = ('Name', 'Shares', 'Price', 'Change')
-header = '%10s %10s %10s %10s' % header_tuple
-separator = '{:->10s} {:->10s} {:->10s} {:->10s}'.format('-', '-', '-', '-')
-print(f'{header}\n{separator}')
-for name, shares, price, change in make_report(portfolio, prices):
-    advanced_price = '$' + str(price)
-    print(f'{name:>10s} {shares:>10d} {advanced_price:>10s} {change:>10.2f}')
+def print_report(report):
+    header_tuple = ('Name', 'Shares', 'Price', 'Change')
+    header = '%10s %10s %10s %10s' % header_tuple
+    separator = '{:->10s} {:->10s} {:->10s} {:->10s}'.format('-', '-', '-', '-')
+    print(f'{header}\n{separator}')
+    for name, shares, price, change in report:
+        advanced_price = '$' + str(price)
+        print(f'{name:>10s} {shares:>10d} {advanced_price:>10s} {change:>10.2f}')
+
+
+def portfolio_report(portfolio_filename, prices_filename):
+    report = make_report(read_portfolio(portfolio_filename), read_prices(prices_filename))
+    print_report(report)
+
+
+def main(argv):
+    if len(argv) != 3:
+        raise SystemExit(f'Usage: {sys.argv[0]} ' 'portfile pricefile')
+    portfile = argv[1]
+    pricefile = argv[2]
+    portfolio_report(portfile, pricefile)
+
+
+if __name__ == '__main__':
+    import sys
+
+    main(sys.argv)
