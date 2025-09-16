@@ -24,7 +24,7 @@ def portfolio_cost(filename):
     total_cost = 0.0
     portfolio_list = read_portfolio(filename)
     for dic in portfolio_list:
-        total_cost += int(dic['shares']) * float(dic['price'])
+        total_cost += int(dic.shares) * float(dic.price)
     return total_cost
 
 

@@ -2,7 +2,8 @@
 # report.py
 
 import fileparse
-
+import stock
+import tableformat
 
 def read_portfolio(filename):
     """
@@ -26,7 +27,9 @@ def read_portfolio(filename):
     #             print(f'Bad row: {row}')
     # return portfolio
     with open(filename) as lines:
-        return fileparse.parse_csv(lines, select=['name', 'shares', 'price'], types=[str, int, float])
+        portdicts = fileparse.parse_csv(lines, select=['name', 'shares', 'price'], types=[str, int, float])
+
+    return [ stock.Stock(d['name'], d['shares'], d['price']) for d in portdicts ]
 
 
 def read_prices(filename):
@@ -47,7 +50,6 @@ def read_prices(filename):
     with open(filename) as lines:
         return dict(fileparse.parse_csv(lines, types=[str, float], has_headers=False))
 
-
 def calculate(portfolio_file, prices_file):
     """
     Calculate some data
@@ -65,32 +67,42 @@ def calculate(portfolio_file, prices_file):
 def make_report(portfolio, prices):
     report = []
     for dic in portfolio:
-        row = (dic['name'], dic['shares'], prices[dic['name']], prices[dic['name']] - dic['price'])
+        row = (dic.name, dic.shares, prices[dic.name], prices[dic.name] - dic.price)
         report.append(row)
     return report
 
 
-def print_report(report):
-    header_tuple = ('Name', 'Shares', 'Price', 'Change')
-    header = '%10s %10s %10s %10s' % header_tuple
-    separator = '{:->10s} {:->10s} {:->10s} {:->10s}'.format('-', '-', '-', '-')
-    print(f'{header}\n{separator}')
-    for name, shares, price, change in report:
-        advanced_price = '$' + str(price)
-        print(f'{name:>10s} {shares:>10d} {advanced_price:>10s} {change:>10.2f}')
+def print_report(reportdata, formatter):
+    # header_tuple = ('Name', 'Shares', 'Price', 'Change')
+    # header = '%10s %10s %10s %10s' % header_tuple
+    # separator = '{:->10s} {:->10s} {:->10s} {:->10s}'.format('-', '-', '-', '-')
+    # print(f'{header}\n{separator}')
+    # for name, shares, price, change in report:
+    #     advanced_price = '$' + str(price)
+    #     print(f'{name:>10s} {shares:>10d} {advanced_price:>10s} {change:>10.2f}')
+    formatter.headings(['Name','Shares','Price','Change'])
+    for name, shares, price, change in reportdata:
+        rowdata = [ name, str(shares), f'{price:0.2f}', f'{change:0.2f}' ]
+        formatter.row(rowdata)
 
 
-def portfolio_report(portfolio_filename, prices_filename):
-    report = make_report(read_portfolio(portfolio_filename), read_prices(prices_filename))
-    print_report(report)
+def portfolio_report(portfoliofile, pricesfile, fmt='txt'):
+    portfolio = read_portfolio(portfoliofile)
+    prices = read_prices(pricesfile)
+
+    report = make_report(portfolio, prices)
+
+    formatter = tableformat.create_formatter(fmt)
+    print_report(report, formatter)
 
 
 def main(argv):
-    if len(argv) != 3:
-        raise SystemExit(f'Usage: {sys.argv[0]} ' 'portfile pricefile')
+    if len(argv) != 4:
+        raise SystemExit(f'Usage: {sys.argv[0]} ' 'portfile pricefile fmt')
     portfile = argv[1]
     pricefile = argv[2]
-    portfolio_report(portfile, pricefile)
+    fmt = argv[3]
+    portfolio_report(portfile, pricefile, fmt)
 
 
 if __name__ == '__main__':
